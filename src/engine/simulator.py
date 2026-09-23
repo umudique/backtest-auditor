@@ -57,12 +57,10 @@ class PortfolioSimulator:
             raise ValueError("executed positions must align to market data")
 
         initial_equity = float(config.get("initial_equity", 1.0))
-        close_returns = market_data.close.pct_change().fillna(0.0)
-        gross_returns = positions.astype(float) * close_returns
+        intraday_returns = ((market_data.close - market_data.open) / market_data.open).fillna(0.0)
+        gross_returns = positions.astype(float) * intraday_returns
 
         equity_curve = (1.0 + gross_returns).cumprod() * initial_equity
-        if not equity_curve.empty:
-            equity_curve.iloc[0] = initial_equity
 
         running_peak = equity_curve.cummax()
         drawdown_series = (equity_curve / running_peak) - 1.0

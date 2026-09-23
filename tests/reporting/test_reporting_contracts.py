@@ -168,9 +168,12 @@ def test_audit_report_builder_is_deterministic_for_same_inputs() -> None:
     assert first.verdict == second.verdict
 
 
-def test_audit_report_builder_rejects_empty_fragility_summary() -> None:
-    with pytest.raises(ValueError, match="fragility|verdict|unsupported"):
-        AuditReportBuilder().build(_backtest_result(), _validation_result(), {}, [], [])
+def test_audit_report_builder_produces_pass_verdict_for_empty_fragility_summary() -> None:
+    report = AuditReportBuilder().build(_backtest_result(), _validation_result(), {}, [], [])
+
+    assert isinstance(report, AuditReport)
+    assert report.verdict.startswith("PASS")
+    assert report.fragility_summary == []
 
 
 def test_plotly_renderer_equity_curve_returns_chart_and_does_not_mutate() -> None:

@@ -6,6 +6,7 @@ import pathlib
 import tempfile
 
 import streamlit as st
+
 from app.display import render_report
 from app.inputs import build_config, load_market_data
 

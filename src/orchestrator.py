@@ -139,8 +139,6 @@ def run_audit(market_data: MarketData, config: AuditConfig) -> AuditReport:
     metrics = MetricsAggregator().aggregate(return_metrics, drawdown_metrics, {})
 
     fragility_summary = FragilityEvaluator().evaluate(validation_result, metrics)
-    if not fragility_summary:
-        fragility_summary = ["no significant fragility detected from available evidence"]
     renderer = PlotlyRenderer()
     charts = [
         renderer.render_equity_curve(backtest_result),
@@ -202,7 +200,7 @@ def _safe_metric(metric: Any, backtest_result: BacktestResult) -> float:
     try:
         return float(metric(backtest_result, 0.0, 252.0))
     except ValueError:
-        return 1.0
+        return float("nan")
 
 
 def _window_defaults(backtest_result: BacktestResult) -> dict[str, int]:
