@@ -1,0 +1,30 @@
+name: CI Thorough
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # ─── Coverage (branch coverage gate: 80%) ──────────────────────────────────
+  # Ensures financial calculations are exercised by tests.
+  # Hypothesis property-based tests are included in this run.
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: pytest with coverage
+        run: uv run pytest --cov --cov-branch --cov-report=term-missing
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: .coverage
+          retention-days: 30

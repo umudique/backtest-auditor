@@ -1,0 +1,67 @@
+name: CI Fast
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  # ─── Format ────────────────────────────────────────────────────────────────
+  fmt:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: ruff format --check
+        run: uv run ruff format --check .
+
+  # ─── Lint ──────────────────────────────────────────────────────────────────
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: ruff check — warnings are errors
+        run: uv run ruff check .
+
+  # ─── Type check ────────────────────────────────────────────────────────────
+  mypy:
+    name: Mypy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: mypy strict
+        run: uv run mypy src
+
+  # ─── Tests ─────────────────────────────────────────────────────────────────
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - name: Install dependencies
+        run: uv sync --extra dev
+      - name: pytest
+        run: uv run pytest
+
+  # ─── YAML linting ──────────────────────────────────────────────────────────
+  yamllint:
+    name: Yamllint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install yamllint --quiet
+      - name: yamllint — CI workflows
+        run: yamllint -c .yamllint.yml .github/workflows/
+      - name: yamllint — dependabot
+        run: yamllint -c .yamllint.yml .github/dependabot.yml

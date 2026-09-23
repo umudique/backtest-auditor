@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "backtest-auditor"
+version = "0.1.0"
+description = "Backtest reliability and robustness auditing framework"
+requires-python = ">=3.11"
+dependencies = [
+    "numpy>=1.26",
+    "pandas>=2.2",
+    "scipy>=1.13",
+    "plotly>=5.22",
+    "streamlit>=1.35",
+    "pyarrow>=16.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.2",
+    "pytest-cov>=5.0",
+    "hypothesis>=6.100",
+    "ruff>=0.4",
+    "mypy>=1.10",
+    "pandas-stubs>=2.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--tb=short -q"
+# exit code 5 (no tests collected) is acceptable during early development
+filterwarnings = []
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+fail_under = 80
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
