@@ -22,6 +22,8 @@ jobs:
         run: uv sync --extra dev
       - name: pytest with coverage
         run: uv run pytest --cov --cov-branch --cov-report=term-missing
+        env:
+          HYPOTHESIS_PROFILE: ci
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:

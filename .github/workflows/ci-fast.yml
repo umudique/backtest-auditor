@@ -53,6 +53,8 @@ jobs:
         run: uv sync --extra dev
       - name: pytest
         run: uv run pytest
+        env:
+          HYPOTHESIS_PROFILE: ci
 
   # ─── YAML linting ──────────────────────────────────────────────────────────
   yamllint:
