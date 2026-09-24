@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import pandas as pd
 import pytest
+from hypothesis import assume, given, settings
+from hypothesis import strategies as st
+from hypothesis.strategies import DrawFn
 
 from src.contracts import AuditConfig, BacktestResult, MarketData
 from src.engine.costs import CostModel
@@ -24,6 +27,98 @@ def market_data_fixture() -> MarketData:
         close=pd.Series([100.0, 101.0, 102.0, 101.0, 103.0, 104.0], index=index),
         volume=pd.Series([1000, 1100, 1200, 1300, 1400, 1500], index=index),
     )
+
+
+def _market_data_from_prices(prices: list[float]) -> MarketData:
+    index = pd.RangeIndex(len(prices))
+    price_series = pd.Series(prices, index=index, dtype=float)
+    return MarketData(
+        timestamp=pd.Series(index, index=index, name="timestamp"),
+        open=price_series.copy(),
+        high=price_series.copy(),
+        low=price_series.copy(),
+        close=price_series.copy(),
+        volume=pd.Series([1000.0] * len(prices), index=index),
+    )
+
+
+def _market_data_from_open_close(open_prices: list[float], close_prices: list[float]) -> MarketData:
+    index = pd.RangeIndex(len(open_prices))
+    open_series = pd.Series(open_prices, index=index, dtype=float)
+    close_series = pd.Series(close_prices, index=index, dtype=float)
+    return MarketData(
+        timestamp=pd.Series(index, index=index, name="timestamp"),
+        open=open_series,
+        high=pd.Series(
+            [
+                max(open_price, close_price)
+                for open_price, close_price in zip(open_prices, close_prices)
+            ],
+            index=index,
+            dtype=float,
+        ),
+        low=pd.Series(
+            [
+                min(open_price, close_price)
+                for open_price, close_price in zip(open_prices, close_prices)
+            ],
+            index=index,
+            dtype=float,
+        ),
+        close=close_series,
+        volume=pd.Series([1000.0] * len(open_prices), index=index),
+    )
+
+
+@st.composite
+def _gross_and_trade_sizes(
+    draw: DrawFn,
+) -> tuple[float, float, list[float], list[float]]:
+    fee_rate = draw(st.floats(min_value=0.0, max_value=0.05, allow_nan=False, allow_infinity=False))
+    slippage_rate = draw(
+        st.floats(min_value=0.0, max_value=0.05, allow_nan=False, allow_infinity=False)
+    )
+    length = draw(st.integers(min_value=1, max_value=20))
+    gross_values = draw(
+        st.lists(
+            st.floats(min_value=-0.2, max_value=0.2, allow_nan=False, allow_infinity=False),
+            min_size=length,
+            max_size=length,
+        )
+    )
+    trade_sizes = draw(
+        st.lists(
+            st.floats(min_value=0.0, max_value=5.0, allow_nan=False, allow_infinity=False),
+            min_size=length,
+            max_size=length,
+        )
+    )
+    return fee_rate, slippage_rate, gross_values, trade_sizes
+
+
+@st.composite
+def _open_close_position_paths(
+    draw: DrawFn,
+) -> tuple[list[float], list[float], list[float]]:
+    path_length = draw(st.integers(min_value=2, max_value=30))
+    open_prices = draw(
+        st.lists(
+            st.floats(min_value=0.01, max_value=1000.0, allow_nan=False, allow_infinity=False),
+            min_size=path_length,
+            max_size=path_length,
+        )
+    )
+    close_prices = draw(
+        st.lists(
+            st.floats(min_value=0.01, max_value=1000.0, allow_nan=False, allow_infinity=False),
+            min_size=path_length,
+            max_size=path_length,
+        )
+    )
+    position_values = draw(
+        st.lists(st.sampled_from([-1.0, 0.0, 1.0]), min_size=path_length, max_size=path_length)
+    )
+    return open_prices, close_prices, position_values
 
 
 def audit_config_fixture() -> AuditConfig:
@@ -190,6 +285,80 @@ def test_gross_vs_net_consistency_for_positive_cost_trades() -> None:
 
     traded = trades["trade_size"] > 0
     assert (net_returns.loc[traded] <= gross_returns.loc[traded]).all()
+
+
+@settings(max_examples=50)
+@given(inputs=_gross_and_trade_sizes())
+def test_cost_model_net_never_exceeds_gross_for_positive_costs(
+    inputs: tuple[float, float, list[float], list[float]],
+) -> None:
+    fee_rate, slippage_rate, gross_values, trade_sizes = inputs
+    index = pd.RangeIndex(len(gross_values))
+    gross_returns = pd.Series(gross_values, index=index)
+    trades = pd.DataFrame({"trade_size": trade_sizes}, index=index)
+
+    net_returns = CostModel().apply_costs(
+        gross_returns,
+        trades,
+        {"fee_rate": fee_rate, "slippage_rate": slippage_rate},
+    )
+
+    traded = trades["trade_size"] > 0
+    not_traded = trades["trade_size"] == 0
+    assert (net_returns.loc[traded] <= gross_returns.loc[traded]).all()
+    assert net_returns.loc[not_traded].equals(gross_returns.loc[not_traded].astype("float64"))
+
+
+@settings(max_examples=50)
+@given(
+    prices=st.lists(
+        st.floats(min_value=0.01, max_value=1000.0, allow_nan=False, allow_infinity=False),
+        min_size=4,
+        max_size=20,
+    ),
+    short_window=st.integers(min_value=1, max_value=3),
+    long_window=st.integers(min_value=2, max_value=5),
+)
+def test_moving_average_crossover_signals_are_causal_for_arbitrary_prices(
+    prices: list[float],
+    short_window: int,
+    long_window: int,
+) -> None:
+    assume(short_window < long_window)
+    strategy = MovingAverageCrossoverStrategy()
+    parameters = {"short_window": short_window, "long_window": long_window}
+    market_data = _market_data_from_prices(prices)
+
+    full_signals = strategy.generate_signals(market_data, parameters)
+
+    for position in range(len(prices)):
+        prefix_data = _market_data_from_prices(prices[: position + 1])
+        prefix_signals = strategy.generate_signals(prefix_data, parameters)
+        full_val = full_signals.iloc[position]
+        prefix_val = prefix_signals.iloc[-1]
+        if pd.isna(full_val):
+            assert pd.isna(prefix_val)
+        else:
+            assert full_val == prefix_val
+
+
+@settings(max_examples=50)
+@given(path=_open_close_position_paths())
+def test_portfolio_simulator_drawdown_never_exceeds_zero_for_arbitrary_paths(
+    path: tuple[list[float], list[float], list[float]],
+) -> None:
+    open_prices, close_prices, position_values = path
+    assume(len(open_prices) == len(close_prices) == len(position_values))
+    market_data = _market_data_from_open_close(open_prices, close_prices)
+    positions = pd.Series(position_values, index=market_data.close.index)
+
+    simulation = PortfolioSimulator().simulate(
+        market_data,
+        positions,
+        {"initial_equity": 1.0},
+    )
+
+    assert (simulation["drawdown_series"] <= 0).all()
 
 
 def test_engine_components_accept_canonical_contract_types_only() -> None:
