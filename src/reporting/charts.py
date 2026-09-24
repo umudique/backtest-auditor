@@ -2,6 +2,8 @@
 
 from typing import Any
 
+import plotly.graph_objects as go
+
 from src.contracts import BacktestResult
 
 
@@ -36,7 +38,17 @@ class PlotlyRenderer:
             Does not mutate ``backtest_result``.
             Does not perform reporting verdict or fragility evaluation.
         """
-        return {"kind": "equity_curve", "data": backtest_result.equity_curve.to_dict()}
+        figure = go.Figure()
+        figure.add_trace(
+            go.Scatter(
+                x=backtest_result.equity_curve.index,
+                y=backtest_result.equity_curve,
+                mode="lines",
+                name="Equity Curve",
+            )
+        )
+        figure.update_layout(title="Equity Curve")
+        return figure
 
     def render_drawdown(self, backtest_result: BacktestResult) -> Any:
         """Render a drawdown chart object.
@@ -58,4 +70,14 @@ class PlotlyRenderer:
             Does not mutate ``backtest_result``.
             Does not recalculate drawdowns from returns.
         """
-        return {"kind": "drawdown", "data": backtest_result.drawdown_series.to_dict()}
+        figure = go.Figure()
+        figure.add_trace(
+            go.Scatter(
+                x=backtest_result.drawdown_series.index,
+                y=backtest_result.drawdown_series,
+                mode="lines",
+                name="Drawdown",
+            )
+        )
+        figure.update_layout(title="Drawdown")
+        return figure

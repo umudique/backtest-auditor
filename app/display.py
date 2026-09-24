@@ -1,6 +1,6 @@
 """Display contracts for the Streamlit UI boundary."""
 
-from dataclasses import fields
+import streamlit as st
 
 from src.contracts import AuditReport
 
@@ -26,8 +26,26 @@ def render_report(report: AuditReport) -> None:
         Does not recalculate, reformat, reorder, or re-derive analytical
         conclusions.
     """
-    for report_field in fields(AuditReport):
-        print(f"{report_field.name}: {getattr(report, report_field.name)}")
+    st.subheader("Verdict")
+    st.write(report.verdict)
+
+    st.subheader("Fragility Summary")
+    render_fragility_summary(report.fragility_summary)
+
+    st.subheader("Baseline Metrics")
+    st.json(report.baseline_metrics)
+
+    st.subheader("Cost-Adjusted Metrics")
+    st.json(report.cost_adjusted_metrics)
+
+    st.subheader("Out-of-Sample Metrics")
+    st.json(report.out_of_sample_metrics)
+
+    for chart in report.charts:
+        try:
+            st.plotly_chart(chart, use_container_width=True)
+        except (TypeError, ValueError):
+            st.write(chart)
 
 
 def render_fragility_summary(fragility_summary: list[str]) -> None:
@@ -49,4 +67,4 @@ def render_fragility_summary(fragility_summary: list[str]) -> None:
         Does not inspect metrics or validation outputs directly.
     """
     for conclusion in fragility_summary:
-        print(conclusion)
+        st.markdown(f"- {conclusion}")

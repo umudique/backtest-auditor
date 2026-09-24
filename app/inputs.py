@@ -2,7 +2,11 @@
 
 from typing import Any
 
-from src.contracts import AuditConfig
+from src.contracts import AuditConfig, MarketData
+from src.data.canonical import Canonicalizer
+from src.data.loader import MarketDataLoader
+from src.data.schema import SchemaValidator
+from src.data.validation import TimeSeriesValidator, ValueValidator
 
 
 def validate_upload(file_path: str) -> str:
@@ -30,6 +34,33 @@ def validate_upload(file_path: str) -> str:
 
     extension = file_path.rsplit(".", maxsplit=1)[-1] if "." in file_path else ""
     raise ValueError(f"unsupported upload extension: {extension}")
+
+
+def load_market_data(file_path: str) -> MarketData:
+    """Load and canonicalize uploaded market data through the data layer.
+
+    Args:
+        file_path: Local path to a user-uploaded CSV or Parquet file.
+
+    Returns:
+        Canonical ``MarketData`` produced by the data-layer canonicalizer.
+
+    Raises:
+        ValueError: If upload validation, schema validation, time-series
+            validation, value validation, or canonicalization rejects the input.
+
+    Invariants:
+        Calls ``validate_upload`` before file loading.
+        Performs no financial calculations, signal generation, cost handling,
+        metric calculations, validation analysis, or reporting logic.
+        ``MarketData`` is constructed only by ``Canonicalizer``.
+    """
+    validated_path = validate_upload(file_path)
+    data = MarketDataLoader().load(validated_path)
+    data = SchemaValidator().validate(data)
+    data = TimeSeriesValidator().validate(data)
+    data = ValueValidator().validate(data)
+    return Canonicalizer().canonicalize(data)
 
 
 def build_config(form_values: dict[str, Any]) -> AuditConfig:

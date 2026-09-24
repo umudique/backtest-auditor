@@ -6,7 +6,7 @@ import inspect
 
 import pytest
 
-from app.inputs import build_config, validate_upload
+from app.inputs import build_config, load_market_data, validate_upload
 from src.contracts import AuditConfig
 
 
@@ -26,6 +26,11 @@ def _complete_form_values() -> dict[str, object]:
 def test_validate_upload_rejects_txt_file() -> None:
     with pytest.raises(ValueError):
         validate_upload("prices.txt")
+
+
+def test_load_market_data_raises_for_invalid_extension() -> None:
+    with pytest.raises(ValueError):
+        load_market_data("prices.txt")
 
 
 def test_validate_upload_rejects_xlsx_file() -> None:
