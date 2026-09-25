@@ -93,6 +93,7 @@ def test_audit_report_contains_all_required_fields() -> None:
         "fragility_summary",
         "verdict",
         "charts",
+        "sensitivity_grid_rows",
     ]
 
 

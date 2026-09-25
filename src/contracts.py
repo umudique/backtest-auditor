@@ -225,19 +225,25 @@ class AuditReport:
             walk-forward results, narrow parameter robustness, simulated
             drawdown risk, or regime dependence.
         verdict: Final verdict string derived by the reporting layer from
-            explicit evidence in the report. It has no default value because a
-            default would imply an unsupported conclusion.
+            explicit evidence in the report. Must be one of "ROBUST", "FRAGILE",
+            or "FAIL". It has no default value because a default would imply an
+            unsupported conclusion.
         charts: Presentation-ready chart objects or chart view models consumed
             by the UI.
+        sensitivity_grid_rows: Structured grid of Sharpe ratios across the
+            parameter space, consumed by the UI to render the parameter
+            sensitivity heatmap. Each row is a dict with keys "short_window",
+            "long_window", and "sharpe". Empty list when sensitivity analysis
+            was not performed.
 
     Raises:
-        ValueError: If verdict is omitted, defaulted, or unsupported by report
-            evidence; if reporting recalculates analytical results; or if IS/OOS
-            or gross/net distinctions are collapsed.
+        ValueError: If verdict is omitted, defaulted, or not one of the three
+            allowed values; if reporting recalculates analytical results; or if
+            IS/OOS or gross/net distinctions are collapsed.
 
     Invariants:
-        verdict is derived from explicit evidence and has no conclusion-implying
-        default.
+        verdict is one of "ROBUST", "FRAGILE", or "FAIL" — derived from
+        explicit evidence with no conclusion-implying default.
         Reporting consumes analytical outputs only.
         Fragility statements are descriptive, evidence-based, and do not imply
         guaranteed future profitability.
@@ -254,3 +260,4 @@ class AuditReport:
     fragility_summary: list[str] = field(default_factory=list)
     verdict: str
     charts: list[Any] = field(default_factory=list)
+    sensitivity_grid_rows: list[dict[str, Any]] = field(default_factory=list)

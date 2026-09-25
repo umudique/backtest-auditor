@@ -138,6 +138,7 @@ def test_audit_report_fields_match_architecture_section_8_5() -> None:
         "fragility_summary",
         "verdict",
         "charts",
+        "sensitivity_grid_rows",
     ]
 
 
