@@ -169,11 +169,11 @@ def test_audit_report_builder_is_deterministic_for_same_inputs() -> None:
     assert first.verdict == second.verdict
 
 
-def test_audit_report_builder_produces_pass_verdict_for_empty_fragility_summary() -> None:
+def test_audit_report_builder_produces_robust_verdict_for_empty_fragility_summary() -> None:
     report = AuditReportBuilder().build(_backtest_result(), _validation_result(), {}, [], [])
 
     assert isinstance(report, AuditReport)
-    assert report.verdict.startswith("PASS")
+    assert report.verdict == "ROBUST"
     assert report.fragility_summary == []
 
 

@@ -60,9 +60,9 @@ class AuditReportBuilder:
         del backtest_result
 
         if fragility_summary:
-            verdict = "FRAGILE: " + "; ".join(fragility_summary)
+            verdict = "FRAGILE"
         else:
-            verdict = "PASS: no significant fragility detected"
+            verdict = "ROBUST"
         return AuditReport(
             baseline_metrics={key: value for key, value in metrics.items() if "gross" in key},
             cost_adjusted_metrics={key: value for key, value in metrics.items() if "net" in key},
