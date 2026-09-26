@@ -6,12 +6,11 @@ import tempfile
 import streamlit as st
 
 from app.display import render_report
-from app.inputs import build_config, load_market_data
-from src.orchestrator import run_audit
+from app.inputs import build_config, load_and_run_audit
 
 
 def run_app() -> None:
-    """Run the Streamlit UI entry point.
+    """Run the verdict-first Streamlit UI entry point.
 
     Args:
         None.
@@ -20,18 +19,18 @@ def run_app() -> None:
         None.
 
     Raises:
-        NotImplementedError: Until Phase 2 supplies Streamlit interaction
-            wiring.
         ValueError: If user-provided inputs fail surface-level UI validation.
+        FileNotFoundError: If an accepted upload path cannot be found after
+            Streamlit writes it to a temporary file.
 
     Invariants:
         The UI is a thin presentation and orchestration boundary.
-        It calls ``validate_upload``, ``build_config``,
-        ``src.orchestrator.run_audit``, and ``render_report``.
-        It does not import or call engine, validation, metrics, or data pipeline
-        stages directly and contains no financial calculations.
-        Session state, when introduced, may hold configuration and
-        ``AuditReport`` objects only.
+        It reaches orchestration through ``run_audit_from_file`` and renders
+        the returned ``AuditReport`` without calling engine, validation,
+        metrics, or data modules directly.
+        Session state holds only ``AuditConfig`` and ``AuditReport`` objects.
+        The rendered report follows the verdict-first layer order from
+        ``docs/ui_architecture.md``.
     """
     st.title("Backtest Auditor")
 
@@ -77,14 +76,14 @@ def run_app() -> None:
             "random_seed": int(random_seed),
         }
         config = build_config(form_values)
-        market_data = load_market_data(temporary_path)
-        report = run_audit(market_data, config)
-    except ValueError as error:
+        st.session_state["audit_config"] = config
+        report = load_and_run_audit(temporary_path, config)
+    except (FileNotFoundError, OSError, ValueError) as error:
         st.error(str(error))
         return
 
     st.session_state["audit_report"] = report
-    render_report(report)
+    render_report(report, config)
 
 
 if __name__ == "__main__":

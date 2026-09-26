@@ -1,32 +1,28 @@
-"""Input handling contracts for the Streamlit UI boundary."""
+"""Surface-level input contracts for the Streamlit UI boundary."""
 
 from typing import Any
 
-from src.contracts import AuditConfig, MarketData
-from src.data.canonical import Canonicalizer
-from src.data.loader import MarketDataLoader
-from src.data.schema import SchemaValidator
-from src.data.validation import TimeSeriesValidator, ValueValidator
+from src.contracts import AuditConfig, AuditReport
+from src.orchestrator import run_audit_from_file
 
 
 def validate_upload(file_path: str) -> str:
     """Validate a user-supplied upload path at the UI boundary.
 
     Args:
-        file_path: Path selected by the user for market-data upload. Only CSV
-            and Parquet paths are accepted by the MVP UI.
+        file_path: Path selected by the user for market-data upload. The MVP UI
+            accepts CSV and Parquet file names only.
 
     Returns:
         The validated path unchanged.
 
     Raises:
-        NotImplementedError: Until Phase 2 supplies surface-level validation.
         ValueError: If the path does not end with ``.csv`` or ``.parquet``.
 
     Invariants:
-        This function performs UX-level file-extension validation only.
-        It does not read files, parse data, validate OHLCV structure, call the
-        data layer, or perform analytical validation.
+        This is UX validation only.
+        It does not read files, inspect OHLCV fields, canonicalize data, or
+        import the data layer.
     """
     lowered_path = file_path.lower()
     if lowered_path.endswith((".csv", ".parquet")):
@@ -36,31 +32,51 @@ def validate_upload(file_path: str) -> str:
     raise ValueError(f"unsupported upload extension: {extension}")
 
 
-def load_market_data(file_path: str) -> MarketData:
-    """Load and canonicalize uploaded market data through the data layer.
+def load_and_run_audit(file_path: str, config: AuditConfig) -> AuditReport:
+    """Validate an upload path and delegate audit execution to orchestration.
 
     Args:
-        file_path: Local path to a user-uploaded CSV or Parquet file.
+        file_path: Local path for a CSV or Parquet upload.
+        config: Canonical audit configuration collected by the UI.
 
     Returns:
-        Canonical ``MarketData`` produced by the data-layer canonicalizer.
+        Canonical ``AuditReport`` returned by the orchestrator.
 
     Raises:
-        ValueError: If upload validation, schema validation, time-series
-            validation, value validation, or canonicalization rejects the input.
+        ValueError: If surface-level upload validation fails.
+        FileNotFoundError: If the accepted path does not exist.
+        OSError: If the accepted path cannot be read.
 
     Invariants:
-        Calls ``validate_upload`` before file loading.
-        Performs no financial calculations, signal generation, cost handling,
-        metric calculations, validation analysis, or reporting logic.
-        ``MarketData`` is constructed only by ``Canonicalizer``.
+        The UI does not import or call the analytical data package directly.
+        Analytical validation remains outside ``app``.
     """
     validated_path = validate_upload(file_path)
-    data = MarketDataLoader().load(validated_path)
-    data = SchemaValidator().validate(data)
-    data = TimeSeriesValidator().validate(data)
-    data = ValueValidator().validate(data)
-    return Canonicalizer().canonicalize(data)
+    return run_audit_from_file(validated_path, config)
+
+
+def load_market_data(file_path: str, config: AuditConfig | None = None) -> AuditReport:
+    """Compatibility wrapper for the UI upload-to-audit boundary.
+
+    Args:
+        file_path: Local path for a CSV or Parquet upload.
+        config: Canonical audit configuration collected by the UI.
+
+    Returns:
+        Canonical ``AuditReport`` returned by the orchestrator.
+
+    Raises:
+        ValueError: If surface-level upload validation fails or ``config`` is
+            absent.
+
+    Invariants:
+        The UI does not import the analytical data package directly.
+        The orchestrator owns data loading and canonicalization.
+    """
+    validate_upload(file_path)
+    if config is None:
+        raise ValueError("AuditConfig is required to run an audit from a file")
+    return load_and_run_audit(file_path, config)
 
 
 def build_config(form_values: dict[str, Any]) -> AuditConfig:
@@ -75,7 +91,6 @@ def build_config(form_values: dict[str, Any]) -> AuditConfig:
         A canonical ``AuditConfig`` from ``src.contracts``.
 
     Raises:
-        NotImplementedError: Until Phase 2 supplies form mapping.
         ValueError: If required fields are missing, if ``random_seed`` is
             missing or non-integer, or if form data cannot be mapped to the
             canonical configuration contract.
@@ -83,8 +98,7 @@ def build_config(form_values: dict[str, Any]) -> AuditConfig:
     Invariants:
         This function does not redefine ``AuditConfig``.
         Validation is limited to surface-level required-field and type checks.
-        Analytical validation remains in the data, engine, validation, and
-        metrics layers.
+        It performs no financial calculations and no analytical validation.
     """
     if "strategy_name" not in form_values:
         raise ValueError("strategy_name is required")

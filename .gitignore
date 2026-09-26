@@ -16,3 +16,6 @@ htmlcov/
 # Agent operational documents — local only, not version controlled
 /AGENTS.md
 /docs/
+
+# Local demo scripts
+demo_*.py

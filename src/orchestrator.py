@@ -6,6 +6,10 @@ from typing import Any, cast
 import pandas as pd
 
 from src.contracts import AuditConfig, AuditReport, BacktestResult, MarketData
+from src.data.canonical import Canonicalizer
+from src.data.loader import MarketDataLoader
+from src.data.schema import SchemaValidator
+from src.data.validation import TimeSeriesValidator, ValueValidator
 from src.engine.costs import CostModel
 from src.engine.execution import ExecutionModel
 from src.engine.position_sizing import PositionSizer
@@ -24,6 +28,36 @@ from src.validation.in_sample_oos import InSampleOutOfSampleValidator
 from src.validation.monte_carlo import MonteCarloReshuffler
 from src.validation.sensitivity import ParameterSensitivityAnalyzer
 from src.validation.walk_forward import WalkForwardValidator
+
+
+def run_audit_from_file(file_path: str, config: AuditConfig) -> AuditReport:
+    """Load market data from a validated path and run the audit pipeline.
+
+    Args:
+        file_path: CSV or Parquet path already accepted by the UI surface-level
+            upload validator.
+        config: Full audit configuration collected by the UI.
+
+    Returns:
+        A canonical ``AuditReport`` produced by ``run_audit``.
+
+    Raises:
+        ValueError: If data loading, validation, canonicalization, or audit
+            execution rejects the supplied file or configuration.
+        FileNotFoundError: If the file path does not exist.
+        OSError: If the supported file cannot be read.
+
+    Invariants:
+        File loading and canonicalization are owned below the UI boundary.
+        This helper delegates analytical execution to ``run_audit`` and does
+        not duplicate orchestration logic.
+    """
+    data = MarketDataLoader().load(file_path)
+    data = SchemaValidator().validate(data)
+    data = TimeSeriesValidator().validate(data)
+    data = ValueValidator().validate(data)
+    market_data = Canonicalizer().canonicalize(data)
+    return run_audit(market_data, config)
 
 
 def run_audit(market_data: MarketData, config: AuditConfig) -> AuditReport:
