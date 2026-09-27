@@ -35,6 +35,7 @@ def backtest_result_fixture(
         gross_returns=gross_returns,
         net_returns=returns.copy(),
         equity_curve=equity,
+        net_equity_curve=(1.0 + returns).cumprod(),
         drawdown_series=pd.Series([0.0] * len(returns), index=index),
         execution_metadata={"timing": "signal_close_execute_next_open"},
     )
@@ -142,6 +143,28 @@ def test_maximum_drawdown_known_equity_curve() -> None:
     actual = DrawdownMetrics().maximum_drawdown(result)
 
     assert actual == pytest.approx(expected)
+
+
+def test_average_drawdown_known_equity_curve() -> None:
+    # Equity: 1.0 → 1.2 → 0.9 → 1.05
+    # Peaks:  1.0   1.2   1.2   1.2
+    # DD:     0.0   0.0  -0.25  -0.125  → mean = -0.09375
+    result = backtest_result_fixture([0.0, 0.0, 0.0, 0.0], equity_curve=[1.0, 1.2, 0.9, 1.05])
+    expected = (0.0 + 0.0 + (0.9 / 1.2 - 1.0) + (1.05 / 1.2 - 1.0)) / 4
+
+    actual = DrawdownMetrics().average_drawdown(result)
+
+    assert actual == pytest.approx(expected)
+
+
+def test_average_drawdown_is_between_zero_and_maximum_drawdown() -> None:
+    result = backtest_result_fixture([0.0, 0.0, 0.0, 0.0], equity_curve=[1.0, 1.2, 0.8, 1.1])
+
+    avg_dd = DrawdownMetrics().average_drawdown(result)
+    max_dd = DrawdownMetrics().maximum_drawdown(result)
+
+    assert avg_dd <= 0.0
+    assert avg_dd >= max_dd
 
 
 def test_sharpe_zero_denominator_never_defaults_to_one() -> None:
