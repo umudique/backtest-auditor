@@ -148,6 +148,7 @@ class BacktestResult:
     gross_returns: pd.Series
     net_returns: pd.Series
     equity_curve: pd.Series
+    net_equity_curve: pd.Series
     drawdown_series: pd.Series
     execution_metadata: dict[str, Any] = field(default_factory=dict)
 

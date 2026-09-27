@@ -61,6 +61,7 @@ class InSampleOutOfSampleValidator:
             gross_returns=backtest_result.gross_returns.iloc[row_slice],
             net_returns=backtest_result.net_returns.iloc[row_slice].copy(),
             equity_curve=backtest_result.equity_curve.iloc[row_slice],
+            net_equity_curve=backtest_result.net_equity_curve.iloc[row_slice],
             drawdown_series=backtest_result.drawdown_series.iloc[row_slice],
             execution_metadata=backtest_result.execution_metadata.copy(),
         )

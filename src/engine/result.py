@@ -61,12 +61,15 @@ class BacktestResultBuilder:
         if gross_returns is net_returns:
             raise ValueError("gross_returns and net_returns must not be the same object")
 
+        net_equity_curve = (1 + net_returns).cumprod()
+
         return BacktestResult(
             positions=positions,
             trades=trades,
             gross_returns=gross_returns,
             net_returns=net_returns,
             equity_curve=equity_curve,
+            net_equity_curve=net_equity_curve,
             drawdown_series=drawdown_series,
             execution_metadata=execution_metadata,
         )
