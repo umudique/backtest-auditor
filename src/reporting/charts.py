@@ -44,10 +44,20 @@ class PlotlyRenderer:
                 x=backtest_result.equity_curve.index,
                 y=backtest_result.equity_curve,
                 mode="lines",
-                name="Equity Curve",
+                name="Gross",
+                line={"color": "#6b8cae", "width": 1.5, "dash": "dot"},
             )
         )
-        figure.update_layout(title="Equity Curve")
+        figure.add_trace(
+            go.Scatter(
+                x=backtest_result.net_equity_curve.index,
+                y=backtest_result.net_equity_curve,
+                mode="lines",
+                name="Net",
+                line={"color": "#1a4a7a", "width": 2},
+            )
+        )
+        figure.update_layout(title=None)
         return figure
 
     def render_drawdown(self, backtest_result: BacktestResult) -> Any:
@@ -79,5 +89,5 @@ class PlotlyRenderer:
                 name="Drawdown",
             )
         )
-        figure.update_layout(title="Drawdown")
+        figure.update_layout(title=None)
         return figure
