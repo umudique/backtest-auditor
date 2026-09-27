@@ -43,12 +43,22 @@ class FakeStreamlit:
     calls: list[StreamlitCall] = field(default_factory=list)
     session_state: dict[str, object] = field(default_factory=dict)
 
+    def __enter__(self) -> FakeStreamlit:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        pass
+
     def __getattr__(self, name: str) -> Any:
         def recorder(*args: Any, **kwargs: Any) -> object:
             self.calls.append(StreamlitCall(name, args, kwargs))
             if name == "expander":
                 return FakeExpander(self, str(args[0]))
-            return None
+            if name == "columns":
+                n = args[0] if args else 1
+                count = n if isinstance(n, int) else len(n)
+                return [self] * count
+            return self
 
         return recorder
 
@@ -91,9 +101,20 @@ def _sample_report(
         },
         walk_forward_summary=walk_forward_summary
         if walk_forward_summary is not None
-        else {"folds": [{"fold": 1, "sharpe": 0.7}, {"fold": 2, "sharpe": 0.9}]},
+        else {
+            "folds": [
+                {"Fold": 1, "Eval period": "2022-01-01 → 2022-06-30", "Sharpe": 0.7},
+                {"Fold": 2, "Eval period": "2022-07-01 → 2022-12-31", "Sharpe": 0.9},
+            ]
+        },
         parameter_sensitivity_summary={},
-        simulated_drawdown_summary={"median_max_drawdown": -0.227},
+        simulated_drawdown_summary={
+            "median_max_drawdown": -0.227,
+            "p05": -0.35,
+            "p95": -0.12,
+            "n_paths": 3,
+            "drawdown_distribution": [-0.18, -0.23, -0.27],
+        },
         regime_summary={},
         fragility_summary=["out-of-sample performance is weaker"],
         verdict="FRAGILE",
@@ -103,7 +124,7 @@ def _sample_report(
         ],
         sensitivity_grid_rows=sensitivity_grid_rows
         if sensitivity_grid_rows is not None
-        else [{"short_window": 10, "long_window": 50, "sharpe": 0.82}],
+        else [{"Short": 10, "Long": 50, "Sharpe": 0.82}],
     )
 
 
@@ -188,8 +209,8 @@ def test_kpi_strip_renders_all_five_required_metrics(monkeypatch: pytest.MonkeyP
     assert "Net Return" in rendered_text
     assert "OOS Sharpe" in rendered_text
     assert "Max Drawdown" in rendered_text
-    assert "Cost Impact" in rendered_text
-    assert "Monte Carlo DD" in rendered_text
+    assert "Cost Drag" in rendered_text
+    assert "Median Monte Carlo Drawdown" in rendered_text
 
 
 def test_gross_and_net_equity_curves_are_present(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -231,9 +252,8 @@ def test_sensitivity_heatmap_renders_when_grid_rows_exist(
 
     rendered_text = _rendered_text(fake_streamlit)
     assert "Sensitivity Heatmap" in rendered_text
-    assert "short_window" in rendered_text
-    assert "long_window" in rendered_text
-    assert "sharpe" in rendered_text
+    call_names = [c.name for c in fake_streamlit.calls]
+    assert "plotly_chart" in call_names
 
 
 def test_sensitivity_heatmap_placeholder_when_grid_rows_are_empty(
@@ -258,15 +278,23 @@ def test_walk_forward_chart_renders_or_shows_placeholder(
 
     with_results = FakeStreamlit()
     monkeypatch.setattr(display_module, "st", with_results)
-    display_module.render_report(_sample_report(walk_forward_summary={"folds": [{"sharpe": 0.7}]}))
+    display_module.render_report(
+        _sample_report(
+            walk_forward_summary={
+                "folds": [
+                    {"Fold": 1, "Eval period": "2022-01-01 → 2022-06-30", "Sharpe": 0.7},
+                ]
+            }
+        )
+    )
     assert "Walk-forward" in _rendered_text(with_results)
-    assert "sharpe" in _rendered_text(with_results)
+    assert "plotly_chart" in [c.name for c in with_results.calls]
 
     without_results = FakeStreamlit()
     monkeypatch.setattr(display_module, "st", without_results)
     display_module.render_report(_sample_report(walk_forward_summary={}))
-    assert "Walk-forward" in _rendered_text(without_results)
-    assert "not yet computed" in _rendered_text(without_results)
+    assert "Walk-forward" not in _rendered_text(without_results)
+    assert "not yet computed" not in _rendered_text(without_results)
 
 
 def test_ui_does_not_import_analytical_layers_directly() -> None:

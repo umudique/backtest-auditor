@@ -85,6 +85,7 @@ def test_backtest_result_fields_match_architecture_section_8_3() -> None:
         "gross_returns",
         "net_returns",
         "equity_curve",
+        "net_equity_curve",
         "drawdown_series",
         "execution_metadata",
     ]
@@ -100,6 +101,7 @@ def test_backtest_result_rejects_same_gross_and_net_returns_object() -> None:
             gross_returns=returns,
             net_returns=returns,
             equity_curve=[1.0, 0.98, 1.01],
+            net_equity_curve=[1.0, 0.98, 1.01],
             drawdown_series=[0.0, -0.02, 0.0],
             execution_metadata={"execution_timing": "signal_close_execute_next_open"},
         )

@@ -26,12 +26,14 @@ def backtest_result_fixture(length: int = 10) -> BacktestResult:
     positions = pd.Series([float(i % 2) for i in range(length)], index=index)
     trades = pd.DataFrame({"trade_size": positions.diff().fillna(positions).abs()}, index=index)
 
+    net_equity_curve = (1.0 + net_returns).cumprod()
     return BacktestResult(
         positions=positions,
         trades=trades,
         gross_returns=gross_returns,
         net_returns=net_returns.copy(),
         equity_curve=equity_curve,
+        net_equity_curve=net_equity_curve,
         drawdown_series=drawdown_series,
         execution_metadata={"timing": "signal_close_execute_next_open"},
     )
