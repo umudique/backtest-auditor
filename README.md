@@ -24,9 +24,9 @@ The result is a single trust verdict — **ROBUST** or **FRAGILE** — backed by
 
 ## Why This Matters
 
-A strategy that produces a 1.8 Sharpe ratio in-sample and a -0.4 Sharpe ratio out-of-sample is not a strategy — it is a curve-fit. The difference between those two numbers is the gap between a backtest and a credible trading hypothesis.
+A large deterioration from in-sample to out-of-sample performance is a strong warning that the original result may not generalize.
 
-Transaction costs compound this problem. A strategy that turns over frequently can lose 5–8 percentage points per year to fees and slippage before it produces a live return.
+Transaction costs compound this. In the demo result above, cost drag is 6.2 percentage points — enough to turn a marginally profitable gross return into a net loss.
 
 Without systematic validation, neither of these problems is visible until real capital is at risk.
 
