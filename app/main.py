@@ -47,9 +47,13 @@ html, body, [class*="css"] {
     font-weight: 400;
 }
 /* Headings */
-h1, h2, h3, h4,
+h1, .stTitle {
+    font-family: 'IBM Plex Sans', sans-serif !important;
+    font-weight: 700 !important;
+}
+h2, h3, h4,
 [data-testid="stHeading"],
-.stSubheader, .stTitle {
+.stSubheader {
     font-family: 'IBM Plex Sans', sans-serif !important;
     font-weight: 600 !important;
 }
@@ -64,18 +68,21 @@ code, pre, .stCodeBlock {
 [data-testid="stMetricValue"],
 .metric-value {
     font-size: 1.55rem !important;
-    font-weight: 400 !important;
+    font-weight: 600 !important;
 }
 [data-testid="stMetricLabel"],
 .metric-label {
     font-size: 0.85rem !important;
-    font-weight: 400 !important;
+    font-weight: 600 !important;
 }
 .metric-value.bold { font-weight: 700 !important; }
 /* Table cells */
 table td, table th {
     font-family: 'IBM Plex Mono', monospace !important;
     font-size: 0.82rem !important;
+}
+table th {
+    font-weight: 600 !important;
 }
 /* Small secondary button (← New Audit) */
 button[kind="secondary"] {
@@ -145,23 +152,28 @@ def run_app() -> None:
 
 def _render_input_form() -> None:
     """Render the landing input form in the main area."""
-    st.title("Backtest Auditor")
-    st.caption("Upload historical market data and configure a strategy to receive a trust verdict.")
+    _, form_col, _ = st.columns([1, 3, 1])
+    with form_col:
+        st.title("Backtest Auditor")
+        st.caption(
+            "Upload historical market data and configure a strategy to receive a trust verdict."
+        )
 
-    uploaded = st.file_uploader("Market data (CSV or Parquet)", type=["csv", "parquet"])
+        uploaded = st.file_uploader("Market data (CSV or Parquet)", type=["csv", "parquet"])
 
-    col_a, col_b, col_c = st.columns(3)
-    with col_a:
-        short_window = st.number_input("Short window", min_value=1, value=10, step=1)
-        fee_rate = st.number_input("Fee rate", min_value=0.0, value=0.001, format="%.6f")
-    with col_b:
-        long_window = st.number_input("Long window", min_value=2, value=50, step=1)
-        slippage_rate = st.number_input("Slippage rate", min_value=0.0, value=0.001, format="%.6f")
-    with col_c:
-        random_seed = st.number_input("Random seed", min_value=0, value=42, step=1)
-        strategy_name = st.text_input("Strategy", value="moving_average_crossover")
-
-    submitted = st.button("Run audit", type="primary", use_container_width=True)
+        with st.form("audit-form"):
+            col_a, col_b = st.columns(2)
+            with col_a:
+                short_window = st.number_input("Short window", min_value=1, value=10, step=1)
+                fee_rate = st.number_input("Fee rate", min_value=0.0, value=0.001, format="%.6f")
+                random_seed = st.number_input("Random seed", min_value=0, value=42, step=1)
+            with col_b:
+                long_window = st.number_input("Long window", min_value=2, value=50, step=1)
+                slippage_rate = st.number_input(
+                    "Slippage rate", min_value=0.0, value=0.001, format="%.6f"
+                )
+                strategy_name = st.text_input("Strategy", value="moving_average_crossover")
+            submitted = st.form_submit_button("Run audit", type="primary", use_container_width=True)
 
     if not submitted:
         return
