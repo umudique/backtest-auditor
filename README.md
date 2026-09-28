@@ -26,7 +26,7 @@ The result is a single trust verdict — **ROBUST** or **FRAGILE** — backed by
 
 A large deterioration from in-sample to out-of-sample performance is a strong warning that the original result may not generalize.
 
-Transaction costs compound this. In the demo result above, cost drag is 6.2 percentage points — amplifying a −8.1% gross loss to a −14.3% net loss over the full period.
+Transaction costs compound this. In the demo result below, cost drag is 6.2 percentage points — amplifying a −8.1% gross loss to a −14.3% net loss over the full period.
 
 Without systematic validation, neither of these problems is visible until real capital is at risk.
 
