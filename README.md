@@ -26,7 +26,7 @@ The result is a single trust verdict — **ROBUST** or **FRAGILE** — backed by
 
 A large deterioration from in-sample to out-of-sample performance is a strong warning that the original result may not generalize.
 
-Transaction costs compound this. In the demo result above, cost drag is 6.2 percentage points — enough to turn a marginally profitable gross return into a net loss.
+Transaction costs compound this. In the demo result above, cost drag is 6.2 percentage points — amplifying a −8.1% gross loss to a −14.3% net loss over the full period.
 
 Without systematic validation, neither of these problems is visible until real capital is at risk.
 
@@ -50,17 +50,17 @@ Without systematic validation, neither of these problems is visible until real c
 
 | Metric | In-sample | Out-of-sample |
 |---|---|---|
-| Net Sharpe | 0.61 | -0.44 |
-| Net return | +8.2% | -14.3% |
-| Maximum drawdown | -12.1% | -15.7% |
+| Net Sharpe | -0.28 | -0.44 |
+| Net return | -9.3% | -5.5% |
+| Maximum drawdown | -15.7% | -17.4% |
 
-- Cost drag: **6.2 percentage points** (fees + slippage)
-- Median Monte Carlo max drawdown: **-27.1%**
-- Profitable parameter configurations: **3 of 25** tested
+- Cost drag: **6.2 percentage points** — gross −8.1%, net −14.3% over the full period
+- Median Monte Carlo max drawdown: **−27.1%**
+- Profitable parameter configurations: **0 of 16** tested
 
 **Verdict: FRAGILE**
 
-The strategy deteriorated after costs and out-of-sample validation. No robust profitable region was found across nearby parameter values.
+The strategy was unprofitable gross and worsened after costs. OOS Sharpe deteriorated from −0.28 to −0.44 and OOS drawdown deepened to −17.4%. No parameter configuration in the sensitivity grid produced a positive Sharpe.
 
 ---
 
