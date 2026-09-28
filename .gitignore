@@ -15,7 +15,7 @@ htmlcov/
 *.csv
 !examples/*.csv
 
-# Agent operational documents — local only, not version controlled
+# Local operational documents — not version controlled
 /AGENTS.md
 /docs/*
 !/docs/images/
