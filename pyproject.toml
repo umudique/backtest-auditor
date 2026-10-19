@@ -9,7 +9,7 @@ description = "Backtest reliability and robustness auditing framework"
 requires-python = ">=3.12"
 dependencies = [
     "numpy>=1.26",
-    "pandas>=2.2",
+    "pandas>=3.0.6",
     "scipy>=1.13",
     "plotly>=5.22",
     "streamlit>=1.35",
